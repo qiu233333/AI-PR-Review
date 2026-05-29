@@ -1,6 +1,6 @@
 # AI PR Review
 
-AI PR Review 是一个用于辅助 Pull Request 代码评审的项目。当前 PR 仅完成项目初始化，包含前端 Vue 3 + Vite 和后端 Node.js + Express 的基础骨架，不包含 GitHub API 调用和 AI Review 分析功能。
+AI PR Review 是一个用于辅助 Pull Request 代码评审的项目。当前后端已包含健康检查、GitHub PR 链接解析和 GitHub API 获取 PR 信息能力，暂不包含 AI Review 分析功能。
 
 ## 项目结构
 
@@ -31,6 +31,14 @@ Windows PowerShell：
 ```powershell
 Copy-Item backend/.env.example backend/.env
 ```
+
+后端环境变量：
+
+| 变量名 | 必填 | 说明 |
+| --- | --- | --- |
+| `PORT` | 否 | 后端服务端口，默认 `3000` |
+| `CORS_ORIGIN` | 否 | 允许访问后端的前端地址，默认 `http://localhost:5173` |
+| `GITHUB_TOKEN` | 否 | GitHub API Token；不填写也可请求公开仓库，但更容易受到 API 限流 |
 
 同时启动前后端：
 
@@ -88,6 +96,56 @@ parsePrUrl('https://github.com/openai/codex/pull/123');
 
 当前仅支持 `https://github.com/{owner}/{repo}/pull/{number}` 格式。该函数只做本地字符串解析，不会请求 GitHub API，也不会调用任何 AI 模型。非法输入会抛出带 `code` 和清晰 `message` 的 `ParsePrUrlError`。
 
+## 获取 PR 信息
+
+后端提供临时测试接口，用于根据 GitHub PR 链接获取 PR 基础信息和 changed files：
+
+```http
+POST /api/review/fetch-pr
+Content-Type: application/json
+```
+
+请求体：
+
+```json
+{
+  "prUrl": "https://github.com/owner/repo/pull/1"
+}
+```
+
+成功响应包含：
+
+- `pullRequest.title`
+- `pullRequest.body`
+- `pullRequest.user.login`
+- `pullRequest.html_url`
+- `changedFiles[].filename`
+- `changedFiles[].status`
+- `changedFiles[].additions`
+- `changedFiles[].deletions`
+- `changedFiles[].changes`
+- `changedFiles[].patch`
+
+接口测试示例：
+
+```bash
+curl -X POST http://localhost:3000/api/review/fetch-pr \
+  -H "Content-Type: application/json" \
+  -d '{"prUrl":"https://github.com/owner/repo/pull/1"}'
+```
+
+Windows PowerShell：
+
+```powershell
+Invoke-RestMethod `
+  -Uri http://localhost:3000/api/review/fetch-pr `
+  -Method Post `
+  -ContentType "application/json" `
+  -Body '{"prUrl":"https://github.com/owner/repo/pull/1"}'
+```
+
+该接口只获取 GitHub PR 数据，不会调用 DeepSeek、OpenAI 或其他 AI 模型。`GITHUB_TOKEN` 从环境变量读取，可选，不能写死在代码中。
+
 ## 后续功能边界
 
-后续 PR 可按 `spec.md` 继续实现 GitHub PR URL 解析、GitHub REST API 数据获取、AI Review 报告生成和 Markdown 复制等功能。API Key 不应写入代码，应通过 `.env` 管理，并在 `.env.example` 中提供变量名称示例。
+后续 PR 可按 `spec.md` 继续实现 AI Review 报告生成、Markdown 复制等功能。API Key 不应写入代码，应通过 `.env` 管理，并在 `.env.example` 中提供变量名称示例。
