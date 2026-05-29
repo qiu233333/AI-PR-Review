@@ -75,6 +75,19 @@ curl http://localhost:3000/api/health
 }
 ```
 
+## PR 链接解析
+
+后端提供纯函数 `parsePrUrl`，用于解析 GitHub Pull Request 链接：
+
+```js
+import { parsePrUrl } from './src/utils/parsePrUrl.js';
+
+parsePrUrl('https://github.com/openai/codex/pull/123');
+// { owner: 'openai', repo: 'codex', pullNumber: 123 }
+```
+
+当前仅支持 `https://github.com/{owner}/{repo}/pull/{number}` 格式。该函数只做本地字符串解析，不会请求 GitHub API，也不会调用任何 AI 模型。非法输入会抛出带 `code` 和清晰 `message` 的 `ParsePrUrlError`。
+
 ## 后续功能边界
 
 后续 PR 可按 `spec.md` 继续实现 GitHub PR URL 解析、GitHub REST API 数据获取、AI Review 报告生成和 Markdown 复制等功能。API Key 不应写入代码，应通过 `.env` 管理，并在 `.env.example` 中提供变量名称示例。
