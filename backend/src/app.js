@@ -1,7 +1,9 @@
 import cors from 'cors';
 import express from 'express';
 
-export function createApp() {
+import { fetchPullRequestInfo } from './services/githubService.js';
+
+export function createApp({ githubService = { fetchPullRequestInfo } } = {}) {
   const app = express();
   const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
 
@@ -14,6 +16,29 @@ export function createApp() {
       service: 'ai-pr-review-backend',
       timestamp: new Date().toISOString()
     });
+  });
+
+  app.post('/api/review/fetch-pr', async (request, response, next) => {
+    try {
+      const data = await githubService.fetchPullRequestInfo(request.body?.prUrl);
+      response.json({
+        success: true,
+        data
+      });
+    } catch (error) {
+      if (error.name === 'ParsePrUrlError' || error.name === 'GitHubServiceError') {
+        response.status(error.status || 400).json({
+          success: false,
+          error: {
+            code: error.code,
+            message: error.message
+          }
+        });
+        return;
+      }
+
+      next(error);
+    }
   });
 
   app.use((_request, response) => {
