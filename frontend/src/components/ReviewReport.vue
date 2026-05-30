@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const props = defineProps({
   report: {
@@ -26,6 +26,20 @@ const riskClass = computed(() => {
   return 'unknown';
 });
 
+const copyStatus = ref('');
+const copyStatusType = ref('');
+
+const markdownReport = computed(() => {
+  return typeof props.report.markdownReport === 'string' ? props.report.markdownReport : '';
+});
+
+const hasMarkdownReport = computed(() => markdownReport.value.trim().length > 0);
+
+watch(markdownReport, () => {
+  copyStatus.value = '';
+  copyStatusType.value = '';
+});
+
 function normalizeList(value) {
   if (Array.isArray(value)) {
     return value;
@@ -44,6 +58,46 @@ function formatItem(item) {
   }
 
   return JSON.stringify(item);
+}
+
+async function writeToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  textArea.setAttribute('readonly', '');
+  textArea.style.position = 'fixed';
+  textArea.style.opacity = '0';
+  document.body.appendChild(textArea);
+  textArea.select();
+
+  const copied = document.execCommand('copy');
+  document.body.removeChild(textArea);
+
+  if (!copied) {
+    throw new Error('Clipboard copy failed.');
+  }
+}
+
+async function copyMarkdownReport() {
+  if (!hasMarkdownReport.value) {
+    return;
+  }
+
+  copyStatus.value = '';
+  copyStatusType.value = '';
+
+  try {
+    await writeToClipboard(markdownReport.value);
+    copyStatus.value = '复制成功';
+    copyStatusType.value = 'success';
+  } catch {
+    copyStatus.value = '复制失败，请手动复制';
+    copyStatusType.value = 'error';
+  }
 }
 </script>
 
@@ -104,9 +158,19 @@ function formatItem(item) {
     </article>
 
     <article class="markdown-panel">
-      <div class="section-heading">
-        <p class="section-kicker">Markdown</p>
-        <h2>Markdown 报告</h2>
+      <div class="markdown-heading">
+        <div class="section-heading">
+          <p class="section-kicker">Markdown</p>
+          <h2>Markdown 报告</h2>
+        </div>
+        <div class="copy-actions">
+          <button type="button" :disabled="!hasMarkdownReport" @click="copyMarkdownReport">
+            复制 Markdown 报告
+          </button>
+          <p v-if="copyStatus" class="copy-status" :class="copyStatusType" role="status">
+            {{ copyStatus }}
+          </p>
+        </div>
       </div>
       <pre>{{ report.markdownReport || '暂无 Markdown 报告。' }}</pre>
     </article>

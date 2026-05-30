@@ -83,6 +83,8 @@ npm run dev:frontend
 - 测试建议 `testSuggestions`
 - Markdown 报告 `markdownReport`
 
+Markdown 报告区域提供“复制 Markdown 报告”按钮。有报告内容时按钮可用，复制成功会提示“复制成功”；浏览器剪贴板不可用或复制失败时会提示“复制失败，请手动复制”。
+
 请求过程中会显示 loading 状态；请求失败时会展示后端返回的友好错误信息。生产环境或跨域部署时，请通过 `frontend/.env` 配置 `VITE_API_BASE_URL`，不要在代码里写死 API 地址。
 
 ## 测试
@@ -92,6 +94,13 @@ npm run dev:frontend
 ```bash
 npm test
 ```
+
+前端复制功能可通过以下方式验证：
+
+1. 启动前后端并完成一次 PR 分析。
+2. 在 Markdown 报告区域点击“复制 Markdown 报告”。
+3. 看到“复制成功”后，将剪贴板内容粘贴到任意文本编辑器确认内容一致。
+4. 如果浏览器拒绝剪贴板权限，页面会显示“复制失败，请手动复制”。
 
 也可以在后端启动后手动访问：
 
