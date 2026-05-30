@@ -1,6 +1,6 @@
 # AI PR Review
 
-AI PR Review 是一个用于辅助 Pull Request 代码评审的项目。当前后端已包含健康检查、GitHub PR 链接解析和 GitHub API 获取 PR 信息能力，暂不包含 AI Review 分析功能。
+AI PR Review 是一个用于辅助 Pull Request 代码评审的项目。当前后端已包含健康检查、GitHub PR 链接解析、GitHub API 获取 PR 信息和 diff 上下文整理能力，暂不包含 AI Review 分析功能。
 
 ## 项目结构
 
@@ -145,6 +145,36 @@ Invoke-RestMethod `
 ```
 
 该接口只获取 GitHub PR 数据，不会调用 DeepSeek、OpenAI 或其他 AI 模型。`GITHUB_TOKEN` 从环境变量读取，可选，不能写死在代码中。
+
+## 上下文获取方式
+
+后端按以下步骤准备后续模型分析所需的文本上下文：
+
+1. 使用 `parsePrUrl` 解析 `https://github.com/{owner}/{repo}/pull/{number}`。
+2. 使用 `githubService` 获取 PR 基础信息和 changed files。
+3. 使用 `chunkDiff` 保留每个文件的 `filename`、`status`、`additions`、`deletions`、`patch`，并对过长 patch 做截断。
+4. 使用 `promptBuilder` 将 PR title、body、author、changed files 和 patch 拼接成结构化 prompt。
+
+生成的 prompt 会明确要求模型输出：
+
+- 变更总结
+- 风险等级
+- 风险代码
+- Review 建议
+- 测试建议
+
+当前仅构建 prompt 文本，不会调用 DeepSeek、OpenAI 或其他 AI API，也不会生成真实 AI Review 报告。
+
+## 响应速度优化
+
+为避免 prompt 过长影响后续响应速度，`chunkDiff` 会限制单个文件 patch 长度和总 patch 长度。超过限制的 patch 会保留前部内容，并插入截断提示，说明原始长度和保留长度。
+
+后续接入模型时可以继续优化：
+
+- 优先发送 changed files 中最关键的 patch。
+- 对大型 PR 限制每次分析的文件数量。
+- 使用 `GITHUB_TOKEN` 提高 GitHub API 限额，减少请求失败重试。
+- 缓存同一 PR 的 GitHub API 响应，避免重复拉取。
 
 ## 后续功能边界
 
