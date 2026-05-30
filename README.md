@@ -24,12 +24,14 @@ npm install
 
 ```bash
 cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 ```
 
 Windows PowerShell：
 
 ```powershell
 Copy-Item backend/.env.example backend/.env
+Copy-Item frontend/.env.example frontend/.env
 ```
 
 后端环境变量：
@@ -42,6 +44,12 @@ Copy-Item backend/.env.example backend/.env
 | `DEEPSEEK_API_KEY` | 是 | DeepSeek API Key，用于生成 AI PR Review 报告 |
 | `DEEPSEEK_BASE_URL` | 否 | DeepSeek OpenAI 兼容 API 地址，默认 `https://api.deepseek.com` |
 | `DEEPSEEK_MODEL` | 否 | DeepSeek 模型名称，默认 `deepseek-chat` |
+
+前端环境变量：
+
+| 变量名 | 必填 | 说明 |
+| --- | --- | --- |
+| `VITE_API_BASE_URL` | 否 | 后端 API 地址。本地联调可填 `http://localhost:3000`，不填写时使用 Vite 代理访问 `/api` |
 
 同时启动前后端：
 
@@ -61,6 +69,21 @@ npm run dev:frontend
 - 前端：http://localhost:5173
 - 后端：http://localhost:3000
 - 健康检查：http://localhost:3000/api/health
+
+## 前端使用方式
+
+前端页面标题为“AI PR Review 助手”。启动后打开 `http://localhost:5173`，输入 GitHub PR 链接并点击“开始分析”，页面会请求后端 `POST /api/review/analyze`。
+
+页面会展示：
+
+- PR 变更总结 `summary`
+- 风险等级 `riskLevel`
+- 风险代码列表 `risks`
+- Review 建议 `suggestions`
+- 测试建议 `testSuggestions`
+- Markdown 报告 `markdownReport`
+
+请求过程中会显示 loading 状态；请求失败时会展示后端返回的友好错误信息。生产环境或跨域部署时，请通过 `frontend/.env` 配置 `VITE_API_BASE_URL`，不要在代码里写死 API 地址。
 
 ## 测试
 
