@@ -1,60 +1,50 @@
 <script setup>
-import axios from 'axios';
-import { onMounted, ref } from 'vue';
+import { ref } from 'vue';
 
-const health = ref(null);
-const isChecking = ref(false);
+import { analyzePr } from './api/review';
+import LoadingPanel from './components/LoadingPanel.vue';
+import PrInput from './components/PrInput.vue';
+import ReviewReport from './components/ReviewReport.vue';
+
+const report = ref(null);
 const errorMessage = ref('');
+const isLoading = ref(false);
 
-async function checkHealth() {
-  isChecking.value = true;
+async function handleAnalyze(prUrl) {
+  isLoading.value = true;
   errorMessage.value = '';
+  report.value = null;
 
   try {
-    const response = await axios.get('/api/health');
-    health.value = response.data;
+    report.value = await analyzePr(prUrl);
   } catch (error) {
-    health.value = null;
-    errorMessage.value = error?.response?.data?.error?.message || error.message || '后端服务不可用';
+    errorMessage.value =
+      error?.response?.data?.error?.message || error.message || '分析失败，请稍后重试。';
   } finally {
-    isChecking.value = false;
+    isLoading.value = false;
   }
 }
-
-onMounted(checkHealth);
 </script>
 
 <template>
   <main class="app-shell">
-    <section class="workspace-panel" aria-labelledby="page-title">
-      <div class="title-row">
+    <section class="review-workspace" aria-labelledby="page-title">
+      <div class="workspace-header">
         <div>
-          <p class="eyebrow">AI PR Review</p>
-          <h1 id="page-title">项目初始化</h1>
+          <p class="eyebrow">GitHub Pull Request Intelligence</p>
+          <h1 id="page-title">AI PR Review 助手</h1>
         </div>
-        <span class="status-pill" :class="{ online: health?.status === 'ok' }">
-          {{ health?.status === 'ok' ? '后端在线' : '等待检查' }}
-        </span>
+        <span class="signal-pill">DeepSeek Ready</span>
       </div>
 
-      <div class="health-box">
-        <div>
-          <p class="label">健康检查</p>
-          <p class="value">
-            {{ health?.service || 'backend service' }}
-          </p>
-          <p class="meta">
-            {{ health?.timestamp || '尚未收到响应' }}
-          </p>
-        </div>
-        <button type="button" :disabled="isChecking" @click="checkHealth">
-          {{ isChecking ? '检查中' : '重新检查' }}
-        </button>
-      </div>
+      <PrInput :disabled="isLoading" @submit="handleAnalyze" />
 
       <p v-if="errorMessage" class="error-message" role="alert">
         {{ errorMessage }}
       </p>
+
+      <LoadingPanel v-if="isLoading" />
+      <ReviewReport v-else-if="report" :report="report" />
     </section>
   </main>
 </template>
